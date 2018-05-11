@@ -49,18 +49,20 @@ class Batch<K, V> {
         return map;
     }
 
+    boolean containsKey(K k) { return cache.containsKey(k); }
+
     String getFileName() {
         return file.getName();
     }
 
-    public void save(K k, V v) throws IOException {
+    void save(K k, V v) throws IOException {
         out.writeObject(new Save<>(k, v));
         out.flush();
         if (!cache.containsKey(k)) elementsInserted++;
         cache.put(k, v);
     }
 
-    public void delete(K k) throws IOException {
+    void delete(K k) throws IOException {
         out.writeObject(new Delete<>(k));
         out.flush();
         cache.remove(k);
@@ -70,15 +72,13 @@ class Batch<K, V> {
         }
     }
 
-    public Map<K, V> getAll() { return Collections.unmodifiableMap(cache); }
+    Map<K, V> getAll() { return Collections.unmodifiableMap(cache); }
 
-    public boolean shouldInsertMore() { return elementsInserted < MAX_INSERTIONS; }
+    boolean shouldInsertMore() { return elementsInserted < MAX_INSERTIONS; }
 
-    public boolean readyForGC() { return !shouldInsertMore() && cache.size() == 0; }
+    boolean readyForGC() { return !shouldInsertMore() && cache.size() == 0; }
 
-    public void close() throws IOException {
-        out.close();
-    }
+    void close() throws IOException { out.close(); }
 
     private static class Save<K, V> implements Serializable {
         final K k;

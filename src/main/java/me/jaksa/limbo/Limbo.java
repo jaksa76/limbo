@@ -7,7 +7,7 @@ import java.util.*;
 
 /**
  * Persistent key-value store. Operations are fast as long as there are no long lived objects. The more long lived
- * objects there are. The longer it takes to read/update/delete. Insertions of new elements are always fast.
+ * objects there are, the longer it takes to read/update/delete. Insertions of new elements are always fast.
  */
 public class Limbo<K, V> {
     private final File dir;
@@ -62,7 +62,7 @@ public class Limbo<K, V> {
 
     private Batch findBatchFor(K k) {
         for (Batch batch : batches) {
-            if (batch.getAll().containsKey(k)) return batch;
+            if (batch.containsKey(k)) return batch;
         }
         return null;
     }
