@@ -6,7 +6,8 @@ import java.io.ObjectOutputStream;
 import java.util.*;
 
 /**
- * Created by Jaksa on 10/05/2018.
+ * Persistent key-value store. Operations are fast as long as there are no long lived objects. The more long lived
+ * objects there are. The longer it takes to read/update/delete. Insertions of new elements are always fast.
  */
 public class Limbo<K, V> {
     private final File dir;
@@ -26,12 +27,11 @@ public class Limbo<K, V> {
     }
 
     public void insert(K k, V v) throws IOException {
-        if (currentBatch.shouldInsertMore()) {
-            currentBatch.save(k, v);
-        } else {
+        if (currentBatch == null || !currentBatch.shouldInsertMore()) {
             currentBatch = createNewBatch();
             batches.add(currentBatch);
         }
+        currentBatch.save(k, v);
     }
 
     private Batch createNewBatch() throws IOException {
@@ -47,14 +47,16 @@ public class Limbo<K, V> {
         return Integer.parseInt(batch.getFileName().replace(".lb", ""));
     }
 
-    public void update(K k, V v) {
+    public void update(K k, V v) throws IOException {
         Batch batch = findBatchFor(k);
         if (batch == null) throw new IllegalStateException("Could not find element with key " + k);
+        batch.save(k, v);
     }
 
-    public void remove(K k) {
+    public void remove(K k) throws IOException {
         Batch batch = findBatchFor(k);
         if (batch == null) throw new IllegalStateException("Could not find element with key " + k);
+        batch.delete(k);
         if (batch.readyForGC()) batches.remove(batch);
     }
 
@@ -69,5 +71,15 @@ public class Limbo<K, V> {
         HashMap<K, V> map = new HashMap<>();
         for (Batch batch : batches) map.putAll(batch.getAll());
         return map;
+    }
+
+    public void close() {
+        for (Batch batch : batches) {
+            try {
+                batch.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
